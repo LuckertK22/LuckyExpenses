@@ -1,4 +1,4 @@
-using LuckyExpenses.Domain.Services;
+using LuckyExpenses.Application.Interfaces.Authentication;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -6,11 +6,11 @@ using System.Text;
 
 namespace LuckyExpenses.Infrastructure.Authentication
 {
-    public class TokenService(IConfiguration configuration) : ITokenService
+    public class JwtTokenService(IConfiguration configuration) : ITokenService
     {
         private readonly JsonWebTokenHandler _tokenHandler = new();
 
-        public string GenerateToken(long userId, string email, string role)
+        public string GenerateToken(long userId, string email, string role, DateTime expiration)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -30,7 +30,7 @@ namespace LuckyExpenses.Infrastructure.Authentication
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(8),
+                Expires = expiration,
                 SigningCredentials = credentials,
                 Issuer = configuration["Jwt:Issuer"],
                 Audience = configuration["Jwt:Audience"]

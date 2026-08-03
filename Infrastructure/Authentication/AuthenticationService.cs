@@ -3,69 +3,77 @@ using LuckyExpenses.Application.Features.Authentication.Login;
 using LuckyExpenses.Application.Features.Authentication.Register;
 using LuckyExpenses.Application.Features.Users.Common;
 using LuckyExpenses.Application.Interfaces.Authentication;
+using LuckyExpenses.Domain.Entities;
+using LuckyExpenses.Domain.Enums;
 using LuckyExpenses.Domain.Exceptions;
-using LuckyExpenses.Domain.Services;
-using LuckyExpenses.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
+using LuckyExpenses.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace LuckyExpenses.Infrastructure.Authentication
 {
     public class AuthenticationService(
-        UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole<long>> roleManager,
-        ITokenService tokenService) : IAuthenticationService
+        IUserRepository userRepository,
+        IHasherService hasherService,
+        ITokenService tokenService,
+        IUnitOfWork unitOfWork) : IAuthenticationService
     {
-        private const string DefaultRole = "USER";
+        private const int TokenDurationHours = 8;
 
         public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
         {
-            var exists = await userManager.FindByEmailAsync(request.Email);
+            var exists = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
             if (exists is not null)
-                throw new InvalidCredentialsException("El correo electrónico ya está registrado");
+                throw new ConflictException("El correo electrónico ya está registrado");
 
-            var user = new ApplicationUser
+            var user = new User
             {
-                UserName = request.Email,
-                Email = request.Email,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                EmailConfirmed = true
+                Email = request.Email,
+                PasswordHash = hasherService.Hash(request.Password),
+                Role = UserRoleEnum.USER,
+                State = UserStateEnum.ACTIVE
             };
 
-            var result = await userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-                throw new DomainException(string.Join(", ", result.Errors.Select(e => e.Description)));
+            await userRepository.AddAsync(user, cancellationToken);
 
-            if (!await roleManager.RoleExistsAsync(DefaultRole))
-                await roleManager.CreateAsync(new IdentityRole<long> { Name = DefaultRole });
-
-            await userManager.AddToRoleAsync(user, DefaultRole);
+            try
+            {
+                await unitOfWork.SaveChangeAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                throw new ConflictException("El correo electrónico ya está registrado", ex);
+            }
         }
 
         public async Task<AuthenticationResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         {
-            var user = await userManager.FindByEmailAsync(request.Email);
-            if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
+            var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken)
+                ?? throw new InvalidCredentialsException("Credenciales inválidas");
+
+            if (!hasherService.Verify(request.Password, user.PasswordHash))
                 throw new InvalidCredentialsException("Credenciales inválidas");
 
-            var roles = await userManager.GetRolesAsync(user);
-            var role = roles.FirstOrDefault() ?? DefaultRole;
+            if (user.State != UserStateEnum.ACTIVE)
+                throw new UserInactiveException("La cuenta está desactivada");
 
-            var expiration = DateTime.UtcNow.AddHours(8);
-            var token = tokenService.GenerateToken(user.Id, user.Email!, role);
+            var expiration = DateTime.UtcNow.AddHours(TokenDurationHours);
+            var token = tokenService.GenerateToken(user.Id, user.Email, user.Role.ToString(), expiration);
 
-            return new AuthenticationResponse(token, user.Email!, role, expiration);
+            return new AuthenticationResponse(token, user.Email, user.Role.ToString(), expiration);
         }
+
+        private static bool IsUniqueViolation(DbUpdateException ex) =>
+            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
         public async Task<UserResponse> GetUserAsync(long userId, CancellationToken cancellationToken = default)
         {
-            var user = await userManager.FindByIdAsync(userId.ToString());
-            if (user is null)
-                throw new NotFoundException("Usuario no encontrado");
+            var user = await userRepository.GetByIdAsync(userId, cancellationToken)
+                ?? throw new NotFoundException("Usuario no encontrado");
 
-            var role = (await userManager.GetRolesAsync(user)).FirstOrDefault() ?? DefaultRole;
-
-            return new UserResponse(user.Id, user.FirstName, user.LastName, user.Email!, role);
+            return new UserResponse(user.Id, user.FirstName, user.LastName, user.Email, user.Role.ToString());
         }
     }
 }

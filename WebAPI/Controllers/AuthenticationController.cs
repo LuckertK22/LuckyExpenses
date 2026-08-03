@@ -10,10 +10,10 @@ namespace LuckyExpenses.WebAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous]
     public class AuthenticationController(ISender sender) : ControllerBase
     {
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
         {
             var token = await sender.Send(new LoginQuery(request), cancellationToken);
@@ -21,6 +21,7 @@ namespace LuckyExpenses.WebAPI.Controllers
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
         {
             await sender.Send(new RegisterCommand(request), cancellationToken);
