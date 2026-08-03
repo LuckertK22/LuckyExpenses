@@ -1,42 +1,43 @@
-using LuckyExpenses.Application.Features.Authentication.Login;
-using LuckyExpenses.Application.Features.Authentication.Register;
-using LuckyExpenses.Application.Features.Users.GetCurrentUser;
+using LuckyExpenses.Application.Features.Authentication.Command.Login;
+using LuckyExpenses.Application.Features.Authentication.Command.Register;
+using LuckyExpenses.Application.Features.Authentication.Query.GetCurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace LuckyExpenses.WebAPI.Controllers
 {
+    [Route("api/v1/[controller]")]
     [ApiController]
-    [Route("api/[controller]")]
-    public class AuthenticationController(ISender sender) : ControllerBase
+    public class AuthenticationController : ControllerBase
     {
-        [HttpPost("login")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+        private readonly ISender _sender;
+        public AuthenticationController(ISender sender)
         {
-            var token = await sender.Send(new LoginQuery(request), cancellationToken);
-            return Ok(token);
+            _sender = sender;
         }
 
-        [HttpPost("register")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+        [HttpPost]
+        [Route("Login")]
+        public async Task<IActionResult> Login([FromBody] LoginCommand command, CancellationToken cancellationToken)
         {
-            await sender.Send(new RegisterCommand(request), cancellationToken);
+            return Ok(await _sender.Send(command, cancellationToken));
+        }
+
+        [HttpPost]
+        [Route("Register")]
+        public async Task<IActionResult> Register([FromBody] RegisterCommand command, CancellationToken cancellationToken)
+        {
+            await _sender.Send(command, cancellationToken);
             return Ok();
         }
 
-        [HttpGet("me")]
+        [HttpGet]
+        [Route("GetCurrentUser")]
         [Authorize]
         public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
         {
-            var nameIdentifier = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (nameIdentifier is null || !long.TryParse(nameIdentifier, out var userId))
-                throw new UnauthorizedAccessException("Token inválido");
-
-            return Ok(await sender.Send(new GetCurrentUserQuery(userId), cancellationToken));
+            return Ok(await _sender.Send(new GetCurrentUserQuery(), cancellationToken));
         }
     }
 }

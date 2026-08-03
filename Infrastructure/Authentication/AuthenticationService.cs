@@ -1,7 +1,6 @@
-using LuckyExpenses.Application.Features.Authentication.Common;
-using LuckyExpenses.Application.Features.Authentication.Login;
-using LuckyExpenses.Application.Features.Authentication.Register;
-using LuckyExpenses.Application.Features.Users.Common;
+using LuckyExpenses.Application.Features.Authentication.Command.Login;
+using LuckyExpenses.Application.Features.Authentication.Command.Register;
+using LuckyExpenses.Application.Features.Authentication.Query.GetCurrentUser;
 using LuckyExpenses.Application.Interfaces.Authentication;
 using LuckyExpenses.Domain.Entities;
 using LuckyExpenses.Domain.Enums;
@@ -20,18 +19,18 @@ namespace LuckyExpenses.Infrastructure.Authentication
     {
         private const int TokenDurationHours = 8;
 
-        public async Task RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+        public async Task RegisterAsync(RegisterCommand command, CancellationToken cancellationToken = default)
         {
-            var exists = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            var exists = await userRepository.GetByEmailAsync(command.Email, cancellationToken);
             if (exists is not null)
                 throw new ConflictException("El correo electrónico ya está registrado");
 
             var user = new User
             {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PasswordHash = hasherService.Hash(request.Password),
+                FirstName = command.FirstName,
+                LastName = command.LastName,
+                Email = command.Email,
+                PasswordHash = hasherService.Hash(command.Password),
                 Role = UserRoleEnum.USER,
                 State = UserStateEnum.ACTIVE
             };
@@ -48,12 +47,12 @@ namespace LuckyExpenses.Infrastructure.Authentication
             }
         }
 
-        public async Task<AuthenticationResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+        public async Task<LoginResponse> LoginAsync(LoginCommand command, CancellationToken cancellationToken = default)
         {
-            var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken)
+            var user = await userRepository.GetByEmailAsync(command.Email, cancellationToken)
                 ?? throw new InvalidCredentialsException("Credenciales inválidas");
 
-            if (!hasherService.Verify(request.Password, user.PasswordHash))
+            if (!hasherService.Verify(command.Password, user.PasswordHash))
                 throw new InvalidCredentialsException("Credenciales inválidas");
 
             if (user.State != UserStateEnum.ACTIVE)
@@ -62,7 +61,7 @@ namespace LuckyExpenses.Infrastructure.Authentication
             var expiration = DateTime.UtcNow.AddHours(TokenDurationHours);
             var token = tokenService.GenerateToken(user.Id, user.Email, user.Role.ToString(), expiration);
 
-            return new AuthenticationResponse(token, user.Email, user.Role.ToString(), expiration);
+            return new LoginResponse(token, user.Email, user.Role.ToString(), expiration);
         }
 
         private static bool IsUniqueViolation(DbUpdateException ex) =>
