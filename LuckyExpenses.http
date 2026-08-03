@@ -29,13 +29,6 @@ Content-Type: application/json
 
 ###
 
-# @name me
-# Requiere copiar el token de la respuesta de "login" (json.token)
-GET {{LuckyExpenses_HostAddress}}/api/v1/authentication/GetCurrentUser
-Authorization: Bearer <TOKEN>
-
-###
-
 # @name createExpense
 # Requiere reemplazar <TOKEN> por el token de "login"
 POST {{LuckyExpenses_HostAddress}}/api/v1/expenses/Create

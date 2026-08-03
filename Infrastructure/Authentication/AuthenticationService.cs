@@ -1,6 +1,5 @@
 using LuckyExpenses.Application.Features.Authentication.Command.Login;
 using LuckyExpenses.Application.Features.Authentication.Command.Register;
-using LuckyExpenses.Application.Features.Authentication.Query.GetCurrentUser;
 using LuckyExpenses.Application.Interfaces.Authentication;
 using LuckyExpenses.Domain.Entities;
 using LuckyExpenses.Domain.Enums;
@@ -66,13 +65,5 @@ namespace LuckyExpenses.Infrastructure.Authentication
 
         private static bool IsUniqueViolation(DbUpdateException ex) =>
             ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
-
-        public async Task<UserResponse> GetUserAsync(long userId, CancellationToken cancellationToken = default)
-        {
-            var user = await userRepository.GetByIdAsync(userId, cancellationToken)
-                ?? throw new NotFoundException("Usuario no encontrado");
-
-            return new UserResponse(user.Id, user.FirstName, user.LastName, user.Email, user.Role.ToString());
-        }
     }
 }
