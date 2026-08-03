@@ -24,6 +24,7 @@ namespace LuckyExpenses.WebAPI.Config.Jwt
 
                     options.RequireHttpsMetadata = false;
                     options.SaveToken = true;
+                    options.MapInboundClaims = false;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,

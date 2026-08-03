@@ -1,6 +1,7 @@
 using LuckyExpenses.Application.Features.Authentication.Common;
 using LuckyExpenses.Application.Features.Authentication.Login;
 using LuckyExpenses.Application.Features.Authentication.Register;
+using LuckyExpenses.Application.Features.Users.Common;
 using LuckyExpenses.Application.Interfaces.Authentication;
 using LuckyExpenses.Domain.Exceptions;
 using LuckyExpenses.Domain.Services;
@@ -54,6 +55,17 @@ namespace LuckyExpenses.Infrastructure.Authentication
             var token = tokenService.GenerateToken(user.Id, user.Email!, role);
 
             return new AuthenticationResponse(token, user.Email!, role, expiration);
+        }
+
+        public async Task<UserResponse> GetUserAsync(long userId, CancellationToken cancellationToken = default)
+        {
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user is null)
+                throw new NotFoundException("Usuario no encontrado");
+
+            var role = (await userManager.GetRolesAsync(user)).FirstOrDefault() ?? DefaultRole;
+
+            return new UserResponse(user.Id, user.FirstName, user.LastName, user.Email!, role);
         }
     }
 }
