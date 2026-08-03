@@ -1,6 +1,8 @@
+using LuckyExpenses.Application.Context;
 using LuckyExpenses.Application.Interfaces.Authentication;
 using LuckyExpenses.Domain.Repositories;
 using LuckyExpenses.Infrastructure.Authentication;
+using LuckyExpenses.Infrastructure.Context;
 using LuckyExpenses.Infrastructure.Persistence;
 using LuckyExpenses.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +22,7 @@ namespace LuckyExpenses.Infrastructure.DependencyInjection
             });
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
+            services.AddScoped<ICurrentUser, CurrentUser>();
             services.AddScoped<ITokenService, JwtTokenService>();
             services.AddScoped<IHasherService, HasherService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
