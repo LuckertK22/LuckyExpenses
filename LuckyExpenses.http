@@ -1,12 +1,12 @@
 @LuckyExpenses_HostAddress = http://localhost:5003
 
-GET {{LuckyExpenses_HostAddress}}/api/Health
+GET {{LuckyExpenses_HostAddress}}/api/v1/Health/Health
 Accept: application/json
 
 ###
 
 # @name register
-POST {{LuckyExpenses_HostAddress}}/api/authentication/register
+POST {{LuckyExpenses_HostAddress}}/api/v1/authentication/register
 Content-Type: application/json
 
 {
@@ -19,7 +19,7 @@ Content-Type: application/json
 ###
 
 # @name login
-POST {{LuckyExpenses_HostAddress}}/api/authentication/login
+POST {{LuckyExpenses_HostAddress}}/api/v1/authentication/login
 Content-Type: application/json
 
 {
@@ -29,8 +29,26 @@ Content-Type: application/json
 
 ###
 
+# @name me
 # Requiere copiar el token de la respuesta de "login" (json.token)
-GET {{LuckyExpenses_HostAddress}}/api/authentication/me
+GET {{LuckyExpenses_HostAddress}}/api/v1/authentication/GetCurrentUser
 Authorization: Bearer <TOKEN>
+
+###
+
+# @name createExpense
+# Requiere reemplazar <TOKEN> por el token de "login"
+POST {{LuckyExpenses_HostAddress}}/api/v1/expenses/Create
+Authorization: Bearer <TOKEN>
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "paymentMethodId": 1,
+  "title": "Supermercado",
+  "description": "Compra semanal",
+  "amount": 120.50,
+  "expenseDate": "2026-08-03T10:00:00Z"
+}
 
 ###
