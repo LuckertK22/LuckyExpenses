@@ -24,6 +24,9 @@ namespace LuckyExpenses.Infrastructure.DependencyInjection
             services.AddScoped<IHasherService, HasherService>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IExpenseRepository, ExpenseRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
 
             return services;
         }
