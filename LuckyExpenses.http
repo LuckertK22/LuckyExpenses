@@ -4,3 +4,33 @@ GET {{LuckyExpenses_HostAddress}}/api/Health
 Accept: application/json
 
 ###
+
+# @name register
+POST {{LuckyExpenses_HostAddress}}/api/authentication/register
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "password": "MySecretPassword123"
+}
+
+###
+
+# @name login
+POST {{LuckyExpenses_HostAddress}}/api/authentication/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "MySecretPassword123"
+}
+
+###
+
+# Requiere copiar el token de la respuesta de "login" (json.token)
+GET {{LuckyExpenses_HostAddress}}/api/authentication/me
+Authorization: Bearer <TOKEN>
+
+###
