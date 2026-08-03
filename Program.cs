@@ -4,6 +4,7 @@ using LuckyExpenses.WebAPI.Config.Filters;
 using LuckyExpenses.WebAPI.Config.Jwt;
 using LuckyExpenses.WebAPI.Config.Options;
 using LuckyExpenses.WebAPI.Middlewares;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<GlobalResponseFilter>();
 });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddCors(options =>
 {
@@ -27,7 +29,23 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresa el token JWT (sin prefijo 'Bearer ') para autenticarte."
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+    });
+});
 
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddConfiguredOptions(builder.Configuration);

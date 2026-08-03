@@ -1,6 +1,6 @@
-using LuckyExpenses.Shared.Common;
 using LuckyExpenses.Shared.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net;
@@ -14,10 +14,12 @@ namespace LuckyExpenses.WebAPI.Config.Jwt
         public static IServiceCollection AddJwtAuthentication(this IServiceCollection services)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
+                .AddJwtBearer();
+
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtOptions>>((options, jwtOptionsAccessor) =>
                 {
-                    var serviceProvider = services.BuildServiceProvider();
-                    var jwtOptions = serviceProvider.GetRequiredService<IOptions<JwtOptions>>().Value;
+                    var jwtOptions = jwtOptionsAccessor.Value;
 
                     if (string.IsNullOrWhiteSpace(jwtOptions.Key))
                         throw new InvalidOperationException("Jwt:Key no configurado");
@@ -40,15 +42,18 @@ namespace LuckyExpenses.WebAPI.Config.Jwt
                         {
                             context.HandleResponse();
                             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                            context.Response.ContentType = "application/json";
 
-                            return context.Response.WriteAsync(
-                                JsonSerializer.Serialize(new ApiResponse<object>
-                                {
-                                    Ok = false,
-                                    Message = "Token invalido o no proporcionado",
-                                    Data = null
-                                }));
+                            var problemDetails = new ProblemDetails
+                            {
+                                Type = "about:blank",
+                                Status = (int)HttpStatusCode.Unauthorized,
+                                Title = "No autorizado",
+                                Detail = "Token inválido o no proporcionado",
+                                Instance = context.Request.Path
+                            };
+
+                            context.Response.ContentType = "application/problem+json";
+                            return context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails, JsonSerializerOptions.Web));
                         }
                     };
                 });

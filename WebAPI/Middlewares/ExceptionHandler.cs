@@ -1,22 +1,28 @@
-using LuckyExpenses.Infrastructure.Extensions;
+using LuckyExpenses.WebAPI.Extensions;
 using Microsoft.AspNetCore.Diagnostics;
-using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LuckyExpenses.WebAPI.Middlewares
 {
-    public class ExceptionHandler : IExceptionHandler
+    public class ExceptionHandler(ILogger<ExceptionHandler> logger, IProblemDetailsService problemDetailsService) : IExceptionHandler
     {
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
         {
-            ExceptionExtension.HandleException(exception, out var response);
+            var problemDetails = exception.ToProblemDetails();
 
-            httpContext.Response.StatusCode = (int)response.HttpStatusCode;
-            httpContext.Response.ContentType = "application/json";
+            if (problemDetails.Status is StatusCodes.Status500InternalServerError)
+                logger.LogError(exception, "Excepción no controlada: {Message}", exception.Message);
+            else
+                logger.LogWarning(exception, "Excepción controlada: {Message}", exception.Message);
 
-            string jsonResponse = JsonSerializer.Serialize(response);
-            await httpContext.Response.WriteAsync(jsonResponse, cancellationToken);
+            httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-            return Task.CompletedTask.IsCompletedSuccessfully;
+            return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                ProblemDetails = problemDetails,
+                Exception = exception
+            });
         }
     }
 }
