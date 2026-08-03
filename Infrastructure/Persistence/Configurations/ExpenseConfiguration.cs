@@ -22,6 +22,21 @@ namespace LuckyExpenses.Infrastructure.Persistence.Configurations
             builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("timestamp");
             builder.HasIndex(e => e.UserId);
             builder.HasIndex(e => e.ExpenseDate);
+
+            builder.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<Category>()
+                .WithMany()
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<PaymentMethod>()
+                .WithMany()
+                .HasForeignKey(e => e.PaymentMethodId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
