@@ -4,7 +4,7 @@ namespace LuckyExpenses.Domain.Entities
 {
     public class PaymentMethod : BaseEntity
     {
-        public long UserId { get; set; }
+        public string Code { get; set; } = null!;
 
         public string Name { get; set; } = null!;
     }

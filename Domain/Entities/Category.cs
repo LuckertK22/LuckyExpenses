@@ -4,8 +4,8 @@ namespace LuckyExpenses.Domain.Entities
 {
     public class Category : BaseEntity
     {
-        public string Name { get; set; } = null!;
+        public string Code { get; set; } = null!;
 
-        public string? Icon { get; set; }
+        public string Name { get; set; } = null!;
     }
 }
