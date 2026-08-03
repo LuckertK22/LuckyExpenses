@@ -1,8 +1,6 @@
 using LuckyExpenses.Application.Features.Authentication.Command.Login;
 using LuckyExpenses.Application.Features.Authentication.Command.Register;
-using LuckyExpenses.Application.Features.Authentication.Query.GetCurrentUser;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LuckyExpenses.WebAPI.Controllers
@@ -30,14 +28,6 @@ namespace LuckyExpenses.WebAPI.Controllers
         {
             await _sender.Send(command, cancellationToken);
             return Ok();
-        }
-
-        [HttpGet]
-        [Route("GetCurrentUser")]
-        [Authorize]
-        public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
-        {
-            return Ok(await _sender.Send(new GetCurrentUserQuery(), cancellationToken));
         }
     }
 }
