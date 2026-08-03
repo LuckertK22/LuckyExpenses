@@ -1,0 +1,6 @@
+@LuckyExpenses_HostAddress = http://localhost:5003
+
+GET {{LuckyExpenses_HostAddress}}/api/Health
+Accept: application/json
+
+###

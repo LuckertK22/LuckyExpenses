@@ -1,0 +1,29 @@
+## .NET build artifacts
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.vscode/
+
+## Logs
+*.log
+logs/
+
+## Test results
+TestResults/
+*.trx
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Rider / IDEA
+.idea/
+
+## Local config
+appsettings.Local.json
+nul
+query
