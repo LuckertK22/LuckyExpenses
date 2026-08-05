@@ -6,5 +6,11 @@ namespace LuckyExpenses.Domain.Repositories
         Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default);
         Task<bool> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
         void Remove(TEntity entity);
+
+        Task<(int TotalCount, TEntity[] Items)> GetPagedAsync(
+            IQueryable<TEntity> query,
+            int page,
+            int size,
+            CancellationToken cancellationToken = default);
     }
 }

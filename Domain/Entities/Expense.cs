@@ -17,5 +17,9 @@ namespace LuckyExpenses.Domain.Entities
         public decimal Amount { get; set; }
 
         public DateTime ExpenseDate { get; set; }
+
+        public Category Category { get; set; } = null!;
+
+        public PaymentMethod? PaymentMethod { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using LuckyExpenses.Application.Features.Expenses.Command.CreateExpense;
+using LuckyExpenses.Application.Features.Expenses.Query.GetExpenses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,14 @@ namespace LuckyExpenses.WebAPI.Controllers
         {
             var expense = await _sender.Send(command, cancellationToken);
             return Created($"/api/v1/expenses/{expense.Id}", expense);
+        }
+
+        [HttpGet]
+        [Route("GetExpenses")]
+        public async Task<IActionResult> GetExpenses([FromQuery] GetExpensesQuery query, CancellationToken cancellationToken)
+        {
+            var expenses = await _sender.Send(query, cancellationToken);
+            return Ok(expenses);
         }
     }
 }

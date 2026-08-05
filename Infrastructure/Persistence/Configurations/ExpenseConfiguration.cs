@@ -28,12 +28,12 @@ namespace LuckyExpenses.Infrastructure.Persistence.Configurations
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne<Category>()
+            builder.HasOne(e => e.Category)
                 .WithMany()
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne<PaymentMethod>()
+            builder.HasOne(e => e.PaymentMethod)
                 .WithMany()
                 .HasForeignKey(e => e.PaymentMethodId)
                 .OnDelete(DeleteBehavior.SetNull);

@@ -56,7 +56,8 @@ Application/Features/
 │   ├── Command/Login/       LoginCommand, LoginCommandHandler, LoginCommandValidator, LoginResponse
 │   └── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
 └── Expenses/
-    └── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
+    ├── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
+    └── Query/GetExpenses/      GetExpensesQuery, GetExpensesQueryHandler, GetExpensesQueryValidator, GetExpensesResponse
 
 Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las features)
 ```
@@ -64,6 +65,18 @@ Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las
 - `Login` devuelve `LoginResponse` (Token, Email, Role, ExpiresAt).
 - `Register` no devuelve nada (solo confirma).
 - `CreateExpense` devuelve `CreateExpenseResponse` (Id, CategoryId, PaymentMethodId, Title, Description, Amount, ExpenseDate, CreatedAt).
+- `GetExpenses` devuelve `PagedResponse<GetExpensesResponse>` (lista paginada con Id, CategoryId, CategoryName, PaymentMethodId, PaymentMethodName, Title, Description, Amount, ExpenseDate, CreatedAt, más TotalItems/Page/Size).
+- `GetExpensesQuery` filtra por FromDate, ToDate, CategoryId, PaymentMethodId y Title (búsqueda de texto con ILike + Unaccent), con Page/Size (defaults 1/10). El `UserId` lo resuelve el handler con `ICurrentUser`.
+- La búsqueda de texto necesita la extensión `unaccent` de Postgres, habilitada por la migración `EnableUnaccent` (`CREATE EXTENSION IF NOT EXISTS unaccent`).
+- Para exponer los nombres de catálogos, `Expense` tiene navegaciones `Category` y `PaymentMethod` (configuradas con `HasOne(e => e.Category/…)`).
+- `IExpenseRepository` extiende `IBaseRepository<Expense, long>` y agrega `GetByUserAsync` (filtros + `Include` de categorías, devuelve tupla `(TotalCount, Items)`). Los filtros se pasan como parámetros (el `GetExpensesQuery` ya es el portador de filtros; no hay clase `ExpenseFilter`).
+
+## Paginación genérica
+
+- `IBaseRepository<TEntity, TKey>` expone `GetPagedAsync(IQueryable<TEntity>, page, size)` que hace `CountAsync()` antes de paginar y devuelve `(TotalCount, Items)`.
+- `Infrastructure/Repositories/BaseRepository.cs` lo implementa sobre `context.Set<TEntity>()`; los repositorios concretos lo heredan.
+- El repositorio concreto construye su `IQueryable` (filtros condicionales + `Include` + orden) y delega el paginado a `GetPagedAsync`.
+- El handler recibe `(TotalCount, Items)` y lo mapea a `PagedResponse<T>` (`Items`, `TotalItems`, `Page`, `Size`) para que el frontend conozca total y página actual.
 
 ## AuthenticationService
 
@@ -141,4 +154,4 @@ Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las
 - Evitar sobreingeniería en la primera versión.
 - Rutas bajo prefijo `api/v1` (ej. `/api/v1/expenses/Create`).
 - El endpoint `GetCurrentUser` se eliminó por decisión del usuario (también `IAuthenticationService.GetUserAsync` y la feature `Query/GetCurrentUser`).
-- `IExpenseRepository` quedó reducido a `AddAsync` (se quitaron GetByUserAsync, GetByIdAsync, Update, Remove).
+- Los catálogos se traen con `Include` en consultas de gastos para exponer sus nombres sin consultas extra.
