@@ -1,4 +1,7 @@
 using LuckyExpenses.Application.Features.Expenses.Command.CreateExpense;
+using LuckyExpenses.Application.Features.Expenses.Command.DeleteExpense;
+using LuckyExpenses.Application.Features.Expenses.Command.UpdateExpense;
+using LuckyExpenses.Application.Features.Expenses.Query.GetExpenseById;
 using LuckyExpenses.Application.Features.Expenses.Query.GetExpenses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -31,6 +34,30 @@ namespace LuckyExpenses.WebAPI.Controllers
         {
             var expenses = await _sender.Send(query, cancellationToken);
             return Ok(expenses);
+        }
+
+        [HttpGet]
+        [Route("GetExpenseById")]
+        public async Task<IActionResult> GetExpenseById([FromQuery] GetExpenseByIdQuery query, CancellationToken cancellationToken)
+        {
+            var expense = await _sender.Send(query, cancellationToken);
+            return Ok(expense);
+        }
+
+        [HttpPut]
+        [Route("Update")]
+        public async Task<IActionResult> UpdateExpense([FromBody] UpdateExpenseCommand command, CancellationToken cancellationToken)
+        {
+            var expense = await _sender.Send(command, cancellationToken);
+            return Ok(expense);
+        }
+
+        [HttpDelete]
+        [Route("Delete")]
+        public async Task<IActionResult> DeleteExpense([FromBody] DeleteExpenseCommand command, CancellationToken cancellationToken)
+        {
+            await _sender.Send(command, cancellationToken);
+            return Ok();
         }
     }
 }
