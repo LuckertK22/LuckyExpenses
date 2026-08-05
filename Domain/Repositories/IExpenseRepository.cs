@@ -14,5 +14,10 @@ namespace LuckyExpenses.Domain.Repositories
             int page,
             int size,
             CancellationToken cancellationToken = default);
+
+        Task<Expense?> GetByIdForUserAsync(
+            long id,
+            long userId,
+            CancellationToken cancellationToken = default);
     }
 }

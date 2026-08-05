@@ -44,5 +44,16 @@ namespace LuckyExpenses.Infrastructure.Repositories
 
             return await GetPagedAsync(query, page, size, cancellationToken);
         }
+
+        public async Task<Expense?> GetByIdForUserAsync(
+            long id,
+            long userId,
+            CancellationToken cancellationToken = default)
+        {
+            return await DbSet
+                .Include(e => e.Category)
+                .Include(e => e.PaymentMethod)
+                .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, cancellationToken);
+        }
     }
 }
