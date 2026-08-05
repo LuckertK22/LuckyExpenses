@@ -57,7 +57,10 @@ Application/Features/
 │   └── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
 └── Expenses/
     ├── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
-    └── Query/GetExpenses/      GetExpensesQuery, GetExpensesQueryHandler, GetExpensesQueryValidator, GetExpensesResponse
+    ├── Command/UpdateExpense/  UpdateExpenseCommand, UpdateExpenseCommandHandler, UpdateExpenseCommandValidator, UpdateExpenseResponse
+    ├── Command/DeleteExpense/  DeleteExpenseCommand, DeleteExpenseCommandHandler, DeleteExpenseCommandValidator
+    ├── Query/GetExpenses/      GetExpensesQuery, GetExpensesQueryHandler, GetExpensesQueryValidator, GetExpensesResponse
+    └── Query/GetExpenseById/   GetExpenseByIdQuery, GetExpenseByIdQueryHandler, GetExpenseByIdQueryValidator, GetExpenseByIdResponse
 
 Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las features)
 ```
@@ -65,11 +68,15 @@ Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las
 - `Login` devuelve `LoginResponse` (Token, Email, Role, ExpiresAt).
 - `Register` no devuelve nada (solo confirma).
 - `CreateExpense` devuelve `CreateExpenseResponse` (Id, CategoryId, PaymentMethodId, Title, Description, Amount, ExpenseDate, CreatedAt).
+- `UpdateExpense` devuelve `UpdateExpenseResponse` (mismos campos que `CreateExpenseResponse`). Valida referencias y dueño del gasto (`GetByIdForUserAsync`).
+- `DeleteExpense` no devuelve nada (solo confirma). Verifica dueño antes de eliminar (`Remove` + `SaveChangeAsync`).
+- `GetExpenses` devuelve `PagedResponse<GetExpensesResponse>` (lista paginada con Id, CategoryId, CategoryName, PaymentMethodId, PaymentMethodName, Title, Description, Amount, ExpenseDate, CreatedAt, más TotalItems/Page/Size).
+- `GetExpenseById` devuelve `GetExpenseByIdResponse` (mismos campos que un item de la lista). No expone gastos de otros usuarios (filtra por `UserId`).
 - `GetExpenses` devuelve `PagedResponse<GetExpensesResponse>` (lista paginada con Id, CategoryId, CategoryName, PaymentMethodId, PaymentMethodName, Title, Description, Amount, ExpenseDate, CreatedAt, más TotalItems/Page/Size).
 - `GetExpensesQuery` filtra por FromDate, ToDate, CategoryId, PaymentMethodId y Title (búsqueda de texto con ILike + Unaccent), con Page/Size (defaults 1/10). El `UserId` lo resuelve el handler con `ICurrentUser`.
 - La búsqueda de texto necesita la extensión `unaccent` de Postgres, habilitada por la migración `EnableUnaccent` (`CREATE EXTENSION IF NOT EXISTS unaccent`).
 - Para exponer los nombres de catálogos, `Expense` tiene navegaciones `Category` y `PaymentMethod` (configuradas con `HasOne(e => e.Category/…)`).
-- `IExpenseRepository` extiende `IBaseRepository<Expense, long>` y agrega `GetByUserAsync` (filtros + `Include` de categorías, devuelve tupla `(TotalCount, Items)`). Los filtros se pasan como parámetros (el `GetExpensesQuery` ya es el portador de filtros; no hay clase `ExpenseFilter`).
+- `IExpenseRepository` extiende `IBaseRepository<Expense, long>` y agrega `GetByUserAsync` (filtros + `Include` de categorías, devuelve tupla `(TotalCount, Items)`) y `GetByIdForUserAsync` (gasto por id del usuario actual). Los filtros se pasan como parámetros (el `GetExpensesQuery` ya es el portador de filtros; no hay clase `ExpenseFilter`).
 
 ## Paginación genérica
 
