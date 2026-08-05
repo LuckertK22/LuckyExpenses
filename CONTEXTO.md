@@ -55,14 +55,18 @@ Application/Features/
 ├── Authentication/
 │   ├── Command/Login/       LoginCommand, LoginCommandHandler, LoginCommandValidator, LoginResponse
 │   └── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
-└── Expenses/
-    ├── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
-    ├── Command/UpdateExpense/  UpdateExpenseCommand, UpdateExpenseCommandHandler, UpdateExpenseCommandValidator, UpdateExpenseResponse
-    ├── Command/DeleteExpense/  DeleteExpenseCommand, DeleteExpenseCommandHandler, DeleteExpenseCommandValidator
-    ├── Query/GetExpenses/      GetExpensesQuery, GetExpensesQueryHandler, GetExpensesQueryValidator, GetExpensesResponse
-    └── Query/GetExpenseById/   GetExpenseByIdQuery, GetExpenseByIdQueryHandler, GetExpenseByIdQueryValidator, GetExpenseByIdResponse
+├── Expenses/
+│   ├── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
+│   ├── Command/UpdateExpense/  UpdateExpenseCommand, UpdateExpenseCommandHandler, UpdateExpenseCommandValidator, UpdateExpenseResponse
+│   ├── Command/DeleteExpense/  DeleteExpenseCommand, DeleteExpenseCommandHandler, DeleteExpenseCommandValidator
+│   ├── Query/GetExpenses/      GetExpensesQuery, GetExpensesQueryHandler, GetExpensesQueryValidator, GetExpensesResponse
+│   └── Query/GetExpenseById/   GetExpenseByIdQuery, GetExpenseByIdQueryHandler, GetExpenseByIdQueryValidator, GetExpenseByIdResponse
+├── Categories/
+│   └── Query/GetCategories/    GetCategoriesQuery, GetCategoriesQueryHandler, GetCategoriesQueryValidator, GetCategoriesResponse
+└── PaymentMethods/
+    └── Query/GetPaymentMethods/ GetPaymentMethodsQuery, GetPaymentMethodsQueryHandler, GetPaymentMethodsQueryValidator, GetPaymentMethodsResponse
 
-Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las features)
+Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodMapper.cs (mappers compartidos por todas las features)
 ```
 
 - `Login` devuelve `LoginResponse` (Token, Email, Role, ExpiresAt).
@@ -77,6 +81,8 @@ Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las
 - La búsqueda de texto necesita la extensión `unaccent` de Postgres, habilitada por la migración `EnableUnaccent` (`CREATE EXTENSION IF NOT EXISTS unaccent`).
 - Para exponer los nombres de catálogos, `Expense` tiene navegaciones `Category` y `PaymentMethod` (configuradas con `HasOne(e => e.Category/…)`).
 - `IExpenseRepository` extiende `IBaseRepository<Expense, long>` y agrega `GetByUserAsync` (filtros + `Include` de categorías, devuelve tupla `(TotalCount, Items)`) y `GetByIdForUserAsync` (gasto por id del usuario actual). Los filtros se pasan como parámetros (el `GetExpensesQuery` ya es el portador de filtros; no hay clase `ExpenseFilter`).
+- `ICategoryRepository` e `IPaymentMethodRepository` extienden `IBaseRepository<Category/PaymentMethod, long>` y agregan `SearchAsync(search, page, size)`: filtro de texto sobre `Name` y `Code` con ILike + Unaccent, ordena por `Name` y delega el paginado a `GetPagedAsync`.
+- `GetCategories` y `GetPaymentMethods` devuelven `PagedResponse<GetCategoriesResponse/GetPaymentMethodsResponse>` (Id, Code, Name, CreatedAt). Son catálogos globales: no filtran por usuario. `GetCategoriesQuery`/`GetPaymentMethodsQuery` reciben `Search` (opcional), `Page` (default 1) y `Size` (default 10, max 100) vía `[FromQuery]`. Endpoints: `GET /api/v1/Categories/GetCategories` y `GET /api/v1/PaymentMethods/GetPaymentMethods`.
 
 ## Paginación genérica
 

@@ -2,11 +2,12 @@ using LuckyExpenses.Domain.Entities;
 
 namespace LuckyExpenses.Domain.Repositories
 {
-    public interface IPaymentMethodRepository
+    public interface IPaymentMethodRepository : IBaseRepository<PaymentMethod, long>
     {
-        Task<PaymentMethod[]?> GetAllAsync(CancellationToken cancellationToken = default);
-        Task<PaymentMethod?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-        Task<bool> AddAsync(PaymentMethod paymentMethod, CancellationToken cancellationToken = default);
-        void Remove(PaymentMethod paymentMethod);
+        Task<(int TotalCount, PaymentMethod[] Items)> SearchAsync(
+            string? search,
+            int page,
+            int size,
+            CancellationToken cancellationToken = default);
     }
 }

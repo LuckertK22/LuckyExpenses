@@ -5,27 +5,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LuckyExpenses.Infrastructure.Repositories
 {
-    public class PaymentMethodRepository(AppDbContext context) : IPaymentMethodRepository
+    public class PaymentMethodRepository(AppDbContext context) : BaseRepository<PaymentMethod, long>(context), IPaymentMethodRepository
     {
-        public async Task<PaymentMethod[]?> GetAllAsync(CancellationToken cancellationToken = default)
+        public async Task<(int TotalCount, PaymentMethod[] Items)> SearchAsync(
+            string? search,
+            int page,
+            int size,
+            CancellationToken cancellationToken = default)
         {
-            return await context.PaymentMethods.ToArrayAsync(cancellationToken);
-        }
+            var query = DbSet.AsQueryable();
 
-        public async Task<PaymentMethod?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
-        {
-            return await context.PaymentMethods.FindAsync([id], cancellationToken);
-        }
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(p =>
+                    EF.Functions.ILike(EF.Functions.Unaccent(p.Name), EF.Functions.Unaccent($"%{search}%")) ||
+                    EF.Functions.ILike(EF.Functions.Unaccent(p.Code), EF.Functions.Unaccent($"%{search}%")));
 
-        public async Task<bool> AddAsync(PaymentMethod paymentMethod, CancellationToken cancellationToken = default)
-        {
-            await context.PaymentMethods.AddAsync(paymentMethod, cancellationToken);
-            return true;
-        }
+            query = query.OrderBy(p => p.Name);
 
-        public void Remove(PaymentMethod paymentMethod)
-        {
-            context.PaymentMethods.Remove(paymentMethod);
+            return await GetPagedAsync(query, page, size, cancellationToken);
         }
     }
 }

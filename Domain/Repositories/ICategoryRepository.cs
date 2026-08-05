@@ -2,10 +2,12 @@ using LuckyExpenses.Domain.Entities;
 
 namespace LuckyExpenses.Domain.Repositories
 {
-    public interface ICategoryRepository
+    public interface ICategoryRepository : IBaseRepository<Category, long>
     {
-        Task<Category[]?> GetAllAsync(CancellationToken cancellationToken = default);
-        Task<Category?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-        Task<bool> AddAsync(Category category, CancellationToken cancellationToken = default);
+        Task<(int TotalCount, Category[] Items)> SearchAsync(
+            string? search,
+            int page,
+            int size,
+            CancellationToken cancellationToken = default);
     }
 }

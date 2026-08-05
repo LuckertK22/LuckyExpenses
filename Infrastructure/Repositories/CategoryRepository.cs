@@ -5,22 +5,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LuckyExpenses.Infrastructure.Repositories
 {
-    public class CategoryRepository(AppDbContext context) : ICategoryRepository
+    public class CategoryRepository(AppDbContext context) : BaseRepository<Category, long>(context), ICategoryRepository
     {
-        public async Task<Category[]?> GetAllAsync(CancellationToken cancellationToken = default)
+        public async Task<(int TotalCount, Category[] Items)> SearchAsync(
+            string? search,
+            int page,
+            int size,
+            CancellationToken cancellationToken = default)
         {
-            return await context.Categories.ToArrayAsync(cancellationToken);
-        }
+            var query = DbSet.AsQueryable();
 
-        public async Task<Category?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
-        {
-            return await context.Categories.FindAsync([id], cancellationToken);
-        }
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(c =>
+                    EF.Functions.ILike(EF.Functions.Unaccent(c.Name), EF.Functions.Unaccent($"%{search}%")) ||
+                    EF.Functions.ILike(EF.Functions.Unaccent(c.Code), EF.Functions.Unaccent($"%{search}%")));
 
-        public async Task<bool> AddAsync(Category category, CancellationToken cancellationToken = default)
-        {
-            await context.Categories.AddAsync(category, cancellationToken);
-            return true;
+            query = query.OrderBy(c => c.Name);
+
+            return await GetPagedAsync(query, page, size, cancellationToken);
         }
     }
 }
