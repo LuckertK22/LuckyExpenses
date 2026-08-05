@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace LuckyExpenses.Application.Features.Expenses.Command.Create
+namespace LuckyExpenses.Application.Features.Expenses.Command.CreateExpense
 {
     public class CreateExpenseCommandValidator : AbstractValidator<CreateExpenseCommand>
     {

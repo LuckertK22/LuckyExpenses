@@ -60,7 +60,13 @@ namespace LuckyExpenses.Infrastructure.Authentication
             var expiration = DateTime.UtcNow.AddHours(TokenDurationHours);
             var token = tokenService.GenerateToken(user.Id, user.Email, user.Role.ToString(), expiration);
 
-            return new LoginResponse(token, user.Email, user.Role.ToString(), expiration);
+            return new LoginResponse
+            {
+                Token = token,
+                Email = user.Email,
+                Role = user.Role.ToString(),
+                ExpiresAt = expiration
+            };
         }
 
         private static bool IsUniqueViolation(DbUpdateException ex) =>

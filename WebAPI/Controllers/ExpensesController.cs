@@ -1,4 +1,4 @@
-using LuckyExpenses.Application.Features.Expenses.Command.Create;
+using LuckyExpenses.Application.Features.Expenses.Command.CreateExpense;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

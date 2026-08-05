@@ -1,10 +1,11 @@
 using LuckyExpenses.Application.Context;
+using LuckyExpenses.Application.Mappers;
 using LuckyExpenses.Domain.Entities;
 using LuckyExpenses.Domain.Exceptions;
 using LuckyExpenses.Domain.Repositories;
 using MediatR;
 
-namespace LuckyExpenses.Application.Features.Expenses.Command.Create
+namespace LuckyExpenses.Application.Features.Expenses.Command.CreateExpense
 {
     public class CreateExpenseCommandHandler(
         IExpenseRepository expenseRepository,
@@ -12,9 +13,9 @@ namespace LuckyExpenses.Application.Features.Expenses.Command.Create
         IPaymentMethodRepository paymentMethodRepository,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser)
-        : IRequestHandler<CreateExpenseCommand, ExpenseResponse>
+        : IRequestHandler<CreateExpenseCommand, CreateExpenseResponse>
     {
-        public async Task<ExpenseResponse> Handle(CreateExpenseCommand command, CancellationToken cancellationToken)
+        public async Task<CreateExpenseResponse> Handle(CreateExpenseCommand command, CancellationToken cancellationToken)
         {
             if (!currentUser.IsAuthenticated || currentUser.UserId is null)
                 throw new UnauthorizedAccessException("Usuario no autenticado");

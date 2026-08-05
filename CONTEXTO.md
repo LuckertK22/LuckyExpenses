@@ -27,6 +27,51 @@ Construir una API backend profesional usando ASP.NET Core, Clean Architecture, C
 
 `Domain` `Application` `Infrastructure` `Api` `Shared`
 
+## Convenciones de código (estilo FTF)
+
+Se copiaron la estructura de carpetas de `Features` y el estilo de controllers del proyecto de referencia FTF (`FtfApiClient`). El proyecto FTF NO se modifica.
+
+- Features en `Application/Features/{Modulo}/Command|Query/{Feature}/` con un archivo por rol:
+  - `{Feature}Command.cs` / `{Feature}Query.cs`
+  - `{Feature}CommandHandler.cs` / `{Feature}QueryHandler.cs`
+  - `{Feature}CommandValidator.cs` (FluentValidation)
+  - `{Feature}Response.cs` (solo si la feature devuelve datos útiles)
+- **El Command ES el payload del POST**: clase con `{ get; set; }`, se envía directo con `[FromBody]`. No hay `Request` separado.
+- Las respuestas (`*Response`) son **clases** con `{ get; set; }`, no records (como en FTF).
+- Los controllers son delgados: `[Route("api/v1/[controller]")]`, inyectan `ISender`, y hacen `_sender.Send(command)` sin lógica extra.
+- Se mantiene `GlobalResponseFilter`: los controllers devuelven datos crudos y el filtro envuelve en `ApiResponse<T>` (`{ ok, message, data }`).
+- Los handlers resuelven el usuario autenticado con `ICurrentUser` (nunca desde el body ni parseando claims en el controller).
+
+## Usuario autenticado (ICurrentUser)
+
+- `Application/Context/ICurrentUser.cs` + `Infrastructure/Context/CurrentUser.cs` (registrado como Scoped).
+- Expone `IsAuthenticated`, `UserId`, `Email`, `Role` y `GetUserAsync()`, leídos del token JWT vía `IHttpContextAccessor` (con cache por request).
+- Patrón copiado de FTF. Por eso `CreateExpenseCommand` NO lleva `UserId`: lo resuelve el handler desde `_currentUser.UserId`.
+
+## Estructura actual de Features
+
+```
+Application/Features/
+├── Authentication/
+│   ├── Command/Login/       LoginCommand, LoginCommandHandler, LoginCommandValidator, LoginResponse
+│   └── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
+└── Expenses/
+    └── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
+
+Application/Mappers/         ExpenseMapper.cs (mappers compartidos por todas las features)
+```
+
+- `Login` devuelve `LoginResponse` (Token, Email, Role, ExpiresAt).
+- `Register` no devuelve nada (solo confirma).
+- `CreateExpense` devuelve `CreateExpenseResponse` (Id, CategoryId, PaymentMethodId, Title, Description, Amount, ExpenseDate, CreatedAt).
+
+## AuthenticationService
+
+`Infrastructure/Authentication/AuthenticationService.cs` implementa `IAuthenticationService`:
+- `RegisterAsync(RegisterCommand)`: valida email único → crea `User` con password hasheado (rol USER, estado ACTIVE) → guarda. `ConflictException` si el email ya existe.
+- `LoginAsync(LoginCommand)`: busca por email → verifica hash (`IHasherService`) → valida estado ACTIVE → genera JWT (`ITokenService`, expira en 8h) → devuelve `LoginResponse`.
+- Dependencias: `IUserRepository`, `IHasherService`, `ITokenService`, `IUnitOfWork`.
+
 ## Orden de desarrollo acordado
 
 1. Modelar el dominio.
@@ -94,3 +139,6 @@ Construir una API backend profesional usando ASP.NET Core, Clean Architecture, C
 - No implementar Refresh Tokens por ahora.
 - Construir el proyecto como si fuera un sistema listo para producción.
 - Evitar sobreingeniería en la primera versión.
+- Rutas bajo prefijo `api/v1` (ej. `/api/v1/expenses/Create`).
+- El endpoint `GetCurrentUser` se eliminó por decisión del usuario (también `IAuthenticationService.GetUserAsync` y la feature `Query/GetCurrentUser`).
+- `IExpenseRepository` quedó reducido a `AddAsync` (se quitaron GetByUserAsync, GetByIdAsync, Update, Remove).

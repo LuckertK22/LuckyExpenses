@@ -1,8 +1,10 @@
 namespace LuckyExpenses.Application.Features.Authentication.Command.Login
 {
-    public sealed record LoginResponse(
-        string Token,
-        string Email,
-        string Role,
-        DateTime ExpiresAt);
+    public class LoginResponse
+    {
+        public string Token { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Role { get; set; } = null!;
+        public DateTime ExpiresAt { get; set; }
+    }
 }
