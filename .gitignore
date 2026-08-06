@@ -26,3 +26,6 @@ Desktop.ini
 ## Local config
 appsettings.Local.json
 nul
+
+## Project context (local only)
+CONTEXTO.md
