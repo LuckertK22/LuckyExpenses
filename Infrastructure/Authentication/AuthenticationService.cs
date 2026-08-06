@@ -1,11 +1,15 @@
 using LuckyExpenses.Application.Features.Authentication.Command.Login;
+using LuckyExpenses.Application.Features.Authentication.Command.Logout;
+using LuckyExpenses.Application.Features.Authentication.Command.Refresh;
 using LuckyExpenses.Application.Features.Authentication.Command.Register;
 using LuckyExpenses.Application.Interfaces.Authentication;
 using LuckyExpenses.Domain.Entities;
 using LuckyExpenses.Domain.Enums;
 using LuckyExpenses.Domain.Exceptions;
 using LuckyExpenses.Domain.Repositories;
+using LuckyExpenses.Shared.Options;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace LuckyExpenses.Infrastructure.Authentication
@@ -14,9 +18,11 @@ namespace LuckyExpenses.Infrastructure.Authentication
         IUserRepository userRepository,
         IHasherService hasherService,
         ITokenService tokenService,
-        IUnitOfWork unitOfWork) : IAuthenticationService
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork,
+        IOptions<JwtOptions> jwtOptions) : IAuthenticationService
     {
-        private const int TokenDurationHours = 8;
+        private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
         public async Task RegisterAsync(RegisterCommand command, CancellationToken cancellationToken = default)
         {
@@ -57,15 +63,76 @@ namespace LuckyExpenses.Infrastructure.Authentication
             if (user.State != UserStateEnum.ACTIVE)
                 throw new UserInactiveException("La cuenta está desactivada");
 
-            var expiration = DateTime.UtcNow.AddHours(TokenDurationHours);
-            var token = tokenService.GenerateToken(user.Id, user.Email, user.Role.ToString(), expiration);
+            return await CreateTokenPairAsync(user, cancellationToken);
+        }
+
+        public async Task<LoginResponse> RefreshAsync(RefreshCommand command, CancellationToken cancellationToken = default)
+        {
+            var tokenHash = tokenService.HashRefreshToken(command.RefreshToken);
+            var storedToken = await refreshTokenRepository.GetByHashAsync(tokenHash, cancellationToken);
+
+            if (storedToken is null)
+                throw new InvalidCredentialsException("Sesión inválida");
+
+            if (storedToken.RevokedAt is not null)
+            {
+                // Detección de reuso: un token ya rotado no debería volver a usarse.
+                // Se revoca toda la familia del usuario para invalidar un posible token robado.
+                await refreshTokenRepository.RevokeAllActiveForUserAsync(storedToken.UserId, cancellationToken);
+                await unitOfWork.SaveChangeAsync(cancellationToken);
+                throw new InvalidCredentialsException("Sesión inválida");
+            }
+
+            if (storedToken.ExpiresAt <= DateTime.UtcNow)
+                throw new InvalidCredentialsException("La sesión expiró");
+
+            var user = await userRepository.GetByIdAsync(storedToken.UserId, cancellationToken)
+                ?? throw new InvalidCredentialsException("Sesión inválida");
+
+            if (user.State != UserStateEnum.ACTIVE)
+                throw new UserInactiveException("La cuenta está desactivada");
+
+            storedToken.RevokedAt = DateTime.UtcNow;
+
+            return await CreateTokenPairAsync(user, cancellationToken);
+        }
+
+        public async Task LogoutAsync(LogoutCommand command, CancellationToken cancellationToken = default)
+        {
+            var tokenHash = tokenService.HashRefreshToken(command.RefreshToken);
+            var storedToken = await refreshTokenRepository.GetByHashAsync(tokenHash, cancellationToken);
+
+            if (storedToken is not null && storedToken.RevokedAt is null)
+            {
+                storedToken.RevokedAt = DateTime.UtcNow;
+                await unitOfWork.SaveChangeAsync(cancellationToken);
+            }
+        }
+
+        private async Task<LoginResponse> CreateTokenPairAsync(User user, CancellationToken cancellationToken)
+        {
+            var accessExpiration = DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes);
+            var accessToken = tokenService.GenerateToken(user.Id, user.Email, user.Role.ToString(), accessExpiration);
+
+            var refreshTokenValue = tokenService.GenerateRefreshToken();
+            var refreshToken = new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenService.HashRefreshToken(refreshTokenValue),
+                ExpiresAt = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpirationDays)
+            };
+
+            await refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
+            await unitOfWork.SaveChangeAsync(cancellationToken);
 
             return new LoginResponse
             {
-                Token = token,
+                Token = accessToken,
+                RefreshToken = refreshTokenValue,
                 Email = user.Email,
                 Role = user.Role.ToString(),
-                ExpiresAt = expiration
+                ExpiresAt = accessExpiration,
+                RefreshTokenExpiresAt = refreshToken.ExpiresAt
             };
         }
 

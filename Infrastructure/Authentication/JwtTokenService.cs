@@ -2,6 +2,7 @@ using LuckyExpenses.Application.Interfaces.Authentication;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace LuckyExpenses.Infrastructure.Authentication
@@ -37,6 +38,16 @@ namespace LuckyExpenses.Infrastructure.Authentication
             };
 
             return _tokenHandler.CreateToken(tokenDescriptor);
+        }
+
+        public string GenerateRefreshToken()
+            => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        public string HashRefreshToken(string token)
+        {
+            var bytes = Encoding.UTF8.GetBytes(token);
+            var hash = SHA256.HashData(bytes);
+            return Convert.ToBase64String(hash);
         }
     }
 }

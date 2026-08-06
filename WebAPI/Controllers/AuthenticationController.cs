@@ -1,4 +1,6 @@
 using LuckyExpenses.Application.Features.Authentication.Command.Login;
+using LuckyExpenses.Application.Features.Authentication.Command.Logout;
+using LuckyExpenses.Application.Features.Authentication.Command.Refresh;
 using LuckyExpenses.Application.Features.Authentication.Command.Register;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +27,21 @@ namespace LuckyExpenses.WebAPI.Controllers
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterCommand command, CancellationToken cancellationToken)
+        {
+            await _sender.Send(command, cancellationToken);
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("Refresh")]
+        public async Task<IActionResult> Refresh([FromBody] RefreshCommand command, CancellationToken cancellationToken)
+        {
+            return Ok(await _sender.Send(command, cancellationToken));
+        }
+
+        [HttpPost]
+        [Route("Logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutCommand command, CancellationToken cancellationToken)
         {
             await _sender.Send(command, cancellationToken);
             return Ok();
