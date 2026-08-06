@@ -14,7 +14,7 @@ Construir una API backend profesional usando ASP.NET Core, Clean Architecture, C
 - Docker + WSL
 - Swagger UI + Scalar (documentación API)
 - FluentValidation
-- JWT (Refresh Tokens se dejan para una segunda versión)
+- JWT + Refresh Tokens (rotación con reuso detection)
 - Security headers + CORS + ExceptionHandler middleware
 
 ## Infraestructura
@@ -55,7 +55,9 @@ Se copiaron la estructura de carpetas de `Features` y el estilo de controllers d
 Application/Features/
 ├── Authentication/
 │   ├── Command/Login/       LoginCommand, LoginCommandHandler, LoginCommandValidator, LoginResponse
-│   └── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
+│   ├── Command/Register/    RegisterCommand, RegisterCommandHandler, RegisterCommandValidator
+│   ├── Command/Refresh/     RefreshCommand, RefreshCommandHandler, RefreshCommandValidator
+│   └── Command/Logout/      LogoutCommand, LogoutCommandHandler, LogoutCommandValidator
 ├── Expenses/
 │   ├── Command/CreateExpense/  CreateExpenseCommand, CreateExpenseCommandHandler, CreateExpenseCommandValidator, CreateExpenseResponse
 │   ├── Command/UpdateExpense/  UpdateExpenseCommand, UpdateExpenseCommandHandler, UpdateExpenseCommandValidator, UpdateExpenseResponse
@@ -72,8 +74,10 @@ Application/Features/
 Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodMapper.cs (mappers compartidos por todas las features)
 ```
 
-- `Login` devuelve `LoginResponse` (Token, Email, Role, ExpiresAt).
+- `Login` devuelve `LoginResponse` (Token, RefreshToken, Email, Role, ExpiresAt, RefreshTokenExpiresAt).
 - `Register` no devuelve nada (solo confirma).
+- `Refresh` rota el par de tokens: valida el refresh token (hasheado) contra `refresh_tokens`, revoca el usado, emite un JWT nuevo y un refresh token nuevo, y devuelve `LoginResponse`. Si llega un token ya revocado (reuso) revoca toda la familia activa del usuario. Endpoint: `POST /api/v1/authentication/Refresh`.
+- `Logout` revoca el refresh token recibido (idempotente). Endpoint: `POST /api/v1/authentication/Logout`.
 - `CreateExpense` devuelve `CreateExpenseResponse` (Id, CategoryId, PaymentMethodId, Title, Description, Amount, ExpenseDate, CreatedAt).
 - `UpdateExpense` devuelve `UpdateExpenseResponse` (mismos campos que `CreateExpenseResponse`). Valida referencias y dueño del gasto (`GetByIdForUserAsync`).
 - `DeleteExpense` no devuelve nada (solo confirma). Verifica dueño antes de eliminar (`Remove` + `SaveChangeAsync`).
@@ -108,8 +112,18 @@ Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodM
 
 `Infrastructure/Authentication/AuthenticationService.cs` implementa `IAuthenticationService`:
 - `RegisterAsync(RegisterCommand)`: valida email único → crea `User` con password hasheado (rol USER, estado ACTIVE) → guarda. `ConflictException` si el email ya existe.
-- `LoginAsync(LoginCommand)`: busca por email → verifica hash (`IHasherService`) → valida estado ACTIVE → genera JWT (`ITokenService`, expira en 8h) → devuelve `LoginResponse`.
-- Dependencias: `IUserRepository`, `IHasherService`, `ITokenService`, `IUnitOfWork`.
+- `LoginAsync(LoginCommand)`: busca por email → verifica hash (`IHasherService`) → valida estado ACTIVE → genera el par (JWT + refresh token) → guarda el refresh token → devuelve `LoginResponse`.
+- `RefreshAsync(RefreshCommand)`: hashea el token recibido → lo busca en BD → si no existe o expiró lanza `InvalidCredentialsException` → si está revocado revoca toda la familia (`RevokeAllActiveForUserAsync`) y rechaza (detección de reuso) → valida usuario ACTIVE → revoca el usado y rota el par → devuelve `LoginResponse`.
+- `LogoutAsync(LogoutCommand)`: revoca el refresh token recibido (no-op si no existe o ya estaba revocado).
+- `CreateTokenPairAsync(User)` (privado): genera el JWT con vigencia `AccessTokenExpirationMinutes` (default 15) y un refresh token opaco de 64 bytes aleatorios (`RandomNumberGenerator`), guardado hasheado con SHA-256, con vigencia `RefreshTokenExpirationDays` (default 7). Ambas vigencias vienen de `Jwt:AccessTokenExpirationMinutes`/`Jwt:RefreshTokenExpirationDays` (ver `appsettings.json`).
+- Dependencias: `IUserRepository`, `IHasherService`, `ITokenService`, `IRefreshTokenRepository`, `IUnitOfWork`, `IOptions<JwtOptions>`.
+
+## Refresh tokens
+
+- Entidad `Domain/Entities/RefreshToken.cs` (`refresh_tokens`): `UserId`, `TokenHash` (hash SHA-256 del token, único), `ExpiresAt`, `RevokedAt`. FK a `users` con `CASCADE` y `IsActive` computado. Migración `AddRefreshTokens`.
+- `ITokenService` agrega `GenerateRefreshToken()` (64 bytes aleatorios en Base64) y `HashRefreshToken(token)` (SHA-256 en Base64). Implementadas en `JwtTokenService`.
+- `IRefreshTokenRepository` extiende `IBaseRepository<RefreshToken, long>` y agrega `GetByHashAsync` y `RevokeAllActiveForUserAsync`. Registrado como Scoped en `ServiceRegistration`.
+- Rotación: cada uso de un refresh token lo revoca e inicia una nueva cadena (token de un solo uso). El reuso de un token revocado invalida la familia del usuario.
 
 ## Orden de desarrollo acordado
 
@@ -175,7 +189,6 @@ Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodM
 
 ## Notas
 
-- No implementar Refresh Tokens por ahora.
 - Construir el proyecto como si fuera un sistema listo para producción.
 - Evitar sobreingeniería en la primera versión.
 - Rutas bajo prefijo `api/v1` (ej. `/api/v1/expenses/Create`).
