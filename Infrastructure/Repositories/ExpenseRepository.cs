@@ -55,5 +55,35 @@ namespace LuckyExpenses.Infrastructure.Repositories
                 .Include(e => e.PaymentMethod)
                 .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId, cancellationToken);
         }
+
+        public async Task<ExpenseDashboardSummary> GetDashboardSummaryAsync(
+            long userId,
+            DateTime periodStart,
+            DateTime periodEnd,
+            DateTime previousPeriodStart,
+            DateTime previousPeriodEnd,
+            CancellationToken cancellationToken = default)
+        {
+            var userQuery = DbSet.Where(e => e.UserId == userId);
+
+            var periodQuery = userQuery.Where(e => e.ExpenseDate >= periodStart && e.ExpenseDate <= periodEnd);
+            var previousPeriodQuery = userQuery.Where(e => e.ExpenseDate >= previousPeriodStart && e.ExpenseDate <= previousPeriodEnd);
+
+            var totalAmount = await periodQuery.SumAsync(e => e.Amount, cancellationToken);
+            var totalCount = await periodQuery.CountAsync(cancellationToken);
+            var previousTotalAmount = await previousPeriodQuery.SumAsync(e => e.Amount, cancellationToken);
+
+            var byCategory = await periodQuery
+                .Include(e => e.Category)
+                .GroupBy(e => new { e.CategoryId, CategoryName = e.Category.Name })
+                .Select(g => new ExpenseCategorySummary(
+                    g.Key.CategoryId,
+                    g.Key.CategoryName,
+                    g.Sum(e => e.Amount)))
+                .OrderByDescending(g => g.Amount)
+                .ToArrayAsync(cancellationToken);
+
+            return new ExpenseDashboardSummary(totalAmount, totalCount, previousTotalAmount, byCategory);
+        }
     }
 }

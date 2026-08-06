@@ -19,5 +19,24 @@ namespace LuckyExpenses.Domain.Repositories
             long id,
             long userId,
             CancellationToken cancellationToken = default);
+
+        Task<ExpenseDashboardSummary> GetDashboardSummaryAsync(
+            long userId,
+            DateTime periodStart,
+            DateTime periodEnd,
+            DateTime previousPeriodStart,
+            DateTime previousPeriodEnd,
+            CancellationToken cancellationToken = default);
     }
+
+    public record ExpenseDashboardSummary(
+        decimal TotalAmount,
+        int TotalCount,
+        decimal PreviousTotalAmount,
+        ExpenseCategorySummary[] ByCategory);
+
+    public record ExpenseCategorySummary(
+        long CategoryId,
+        string CategoryName,
+        decimal Amount);
 }

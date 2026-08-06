@@ -12,9 +12,10 @@ Construir una API backend profesional usando ASP.NET Core, Clean Architecture, C
 - Entity Framework Core
 - PostgreSQL
 - Docker + WSL
-- Swagger
-- FluentValidation (más adelante)
+- Swagger UI + Scalar (documentación API)
+- FluentValidation
 - JWT (Refresh Tokens se dejan para una segunda versión)
+- Security headers + CORS + ExceptionHandler middleware
 
 ## Infraestructura
 
@@ -63,8 +64,10 @@ Application/Features/
 │   └── Query/GetExpenseById/   GetExpenseByIdQuery, GetExpenseByIdQueryHandler, GetExpenseByIdQueryValidator, GetExpenseByIdResponse
 ├── Categories/
 │   └── Query/GetCategories/    GetCategoriesQuery, GetCategoriesQueryHandler, GetCategoriesQueryValidator, GetCategoriesResponse
-└── PaymentMethods/
-    └── Query/GetPaymentMethods/ GetPaymentMethodsQuery, GetPaymentMethodsQueryHandler, GetPaymentMethodsQueryValidator, GetPaymentMethodsResponse
+├── PaymentMethods/
+│   └── Query/GetPaymentMethods/ GetPaymentMethodsQuery, GetPaymentMethodsQueryHandler, GetPaymentMethodsQueryValidator, GetPaymentMethodsResponse
+└── Dashboard/
+    └── Query/GetDashboardSummary/ GetDashboardSummaryQuery, GetDashboardSummaryQueryHandler, GetDashboardSummaryQueryValidator, GetDashboardSummaryResponse
 
 Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodMapper.cs (mappers compartidos por todas las features)
 ```
@@ -76,13 +79,13 @@ Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodM
 - `DeleteExpense` no devuelve nada (solo confirma). Verifica dueño antes de eliminar (`Remove` + `SaveChangeAsync`).
 - `GetExpenses` devuelve `PagedResponse<GetExpensesResponse>` (lista paginada con Id, CategoryId, CategoryName, PaymentMethodId, PaymentMethodName, Title, Description, Amount, ExpenseDate, CreatedAt, más TotalItems/Page/Size).
 - `GetExpenseById` devuelve `GetExpenseByIdResponse` (mismos campos que un item de la lista). No expone gastos de otros usuarios (filtra por `UserId`).
-- `GetExpenses` devuelve `PagedResponse<GetExpensesResponse>` (lista paginada con Id, CategoryId, CategoryName, PaymentMethodId, PaymentMethodName, Title, Description, Amount, ExpenseDate, CreatedAt, más TotalItems/Page/Size).
 - `GetExpensesQuery` filtra por FromDate, ToDate, CategoryId, PaymentMethodId y Title (búsqueda de texto con ILike + Unaccent), con Page/Size (defaults 1/10). El `UserId` lo resuelve el handler con `ICurrentUser`.
 - La búsqueda de texto necesita la extensión `unaccent` de Postgres, habilitada por la migración `EnableUnaccent` (`CREATE EXTENSION IF NOT EXISTS unaccent`).
 - Para exponer los nombres de catálogos, `Expense` tiene navegaciones `Category` y `PaymentMethod` (configuradas con `HasOne(e => e.Category/…)`).
 - `IExpenseRepository` extiende `IBaseRepository<Expense, long>` y agrega `GetByUserAsync` (filtros + `Include` de categorías, devuelve tupla `(TotalCount, Items)`) y `GetByIdForUserAsync` (gasto por id del usuario actual). Los filtros se pasan como parámetros (el `GetExpensesQuery` ya es el portador de filtros; no hay clase `ExpenseFilter`).
 - `ICategoryRepository` e `IPaymentMethodRepository` extienden `IBaseRepository<Category/PaymentMethod, long>` y agregan `SearchAsync(search, page, size)`: filtro de texto sobre `Name` y `Code` con ILike + Unaccent, ordena por `Name` y delega el paginado a `GetPagedAsync`.
 - `GetCategories` y `GetPaymentMethods` devuelven `PagedResponse<GetCategoriesResponse/GetPaymentMethodsResponse>` (Id, Code, Name, CreatedAt). Son catálogos globales: no filtran por usuario. `GetCategoriesQuery`/`GetPaymentMethodsQuery` reciben `Search` (opcional), `Page` (default 1) y `Size` (default 10, max 100) vía `[FromQuery]`. Endpoints: `GET /api/v1/Categories/GetCategories` y `GET /api/v1/PaymentMethods/GetPaymentMethods`.
+- `GetDashboardSummary` devuelve el resumen del mes para el usuario autenticado (resuelto con `ICurrentUser`). `GetDashboardSummaryQuery` recibe `Year` y `Month` opcionales (defaults: año/mes actuales) vía `[FromQuery]`. El handler calcula el periodo completo del mes y el mes anterior y delega la agregación a `IExpenseRepository.GetDashboardSummaryAsync` (una sola consulta SQL: `Sum`/`Count` sobre el periodo y `GroupBy` por categoría, sin paginar). Devuelve `GetDashboardSummaryResponse` (Year, Month, TotalAmount, TotalExpenses, AverageAmount, PreviousTotalAmount, ChangePercent vs mes anterior, y `ByCategory` con `CategoryBreakdownItem` = CategoryId, CategoryName, Amount, Percentage). Endpoint: `GET /api/v1/Dashboard/Summary`. La agregación devuelve los records `ExpenseDashboardSummary`/`ExpenseCategorySummary` definidos en `Domain/Repositories/IExpenseRepository.cs`.
 
 ## Paginación genérica
 
@@ -90,6 +93,16 @@ Application/Mappers/         ExpenseMapper.cs, CategoryMapper.cs, PaymentMethodM
 - `Infrastructure/Repositories/BaseRepository.cs` lo implementa sobre `context.Set<TEntity>()`; los repositorios concretos lo heredan.
 - El repositorio concreto construye su `IQueryable` (filtros condicionales + `Include` + orden) y delega el paginado a `GetPagedAsync`.
 - El handler recibe `(TotalCount, Items)` y lo mapea a `PagedResponse<T>` (`Items`, `TotalItems`, `Page`, `Size`) para que el frontend conozca total y página actual.
+
+## Pipeline de la API (Program.cs)
+
+- `GlobalResponseFilter` (filtro global) envuelve las respuestas en `ApiResponse<T>` (`{ ok, message, data }`).
+- `ExceptionHandler` middleware convierte excepciones en respuestas de error consistentes.
+- Security headers en cada respuesta: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, `Referrer-Policy: no-referrer`.
+- CORS permisiva (`AllowAnyOrigin/Method/Header`) bajo la política `PoliticaCors`.
+- En Development: Swagger UI + Scalar (`/scalar/v1`). En producción: `UseHsts`, sin docs.
+- `HealthController` expone un endpoint de health (no requiere autenticación).
+- Switches de Npgsql: `EnableLegacyTimestampBehavior` y `DisableDateTimeInfinityConversions`.
 
 ## AuthenticationService
 
