@@ -73,15 +73,23 @@ namespace LuckyExpenses.Infrastructure.Repositories
             var totalCount = await periodQuery.CountAsync(cancellationToken);
             var previousTotalAmount = await previousPeriodQuery.SumAsync(e => e.Amount, cancellationToken);
 
-            var byCategory = await periodQuery
-                .Include(e => e.Category)
-                .GroupBy(e => new { e.CategoryId, CategoryName = e.Category.Name })
-                .Select(g => new ExpenseCategorySummary(
-                    g.Key.CategoryId,
-                    g.Key.CategoryName,
-                    g.Sum(e => e.Amount)))
+            var groupedByCategory = await periodQuery
+                .GroupBy(e => e.CategoryId)
+                .Select(g => new { CategoryId = g.Key, Amount = g.Sum(e => e.Amount) })
                 .OrderByDescending(g => g.Amount)
                 .ToArrayAsync(cancellationToken);
+
+            var categoryIds = groupedByCategory.Select(g => g.CategoryId).ToArray();
+            var categoryNames = await context.Categories
+                .Where(c => categoryIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
+
+            var byCategory = groupedByCategory
+                .Select(g => new ExpenseCategorySummary(
+                    g.CategoryId,
+                    categoryNames.TryGetValue(g.CategoryId, out var name) ? name : "Sin categoría",
+                    g.Amount))
+                .ToArray();
 
             return new ExpenseDashboardSummary(totalAmount, totalCount, previousTotalAmount, byCategory);
         }
