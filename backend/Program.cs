@@ -1,9 +1,11 @@
 using LuckyExpenses.Application.DependencyInjection;
 using LuckyExpenses.Infrastructure.DependencyInjection;
+using LuckyExpenses.Infrastructure.Persistence;
 using LuckyExpenses.WebAPI.Config.Filters;
 using LuckyExpenses.WebAPI.Config.Jwt;
 using LuckyExpenses.WebAPI.Config.Options;
 using LuckyExpenses.WebAPI.Middlewares;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -54,6 +56,13 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddJwtAuthentication();
 
 var app = builder.Build();
+
+if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
