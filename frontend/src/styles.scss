@@ -1,0 +1,221 @@
+/* ============================================================
+   LuckyExpenses — Design Tokens
+   Light (default) + Dark theme via [data-theme] on <html>
+   ============================================================ */
+
+:root {
+  /* ===== Color — Light (default) ===== */
+  --le-bg: #ffffff;
+  --le-surface: #ffffff;
+  --le-surface-2: #f6faf8;
+  --le-surface-hover: #eef4f1;
+  --le-border: #e3e8e5;
+  --le-border-strong: #cbd5ce;
+
+  --le-text: #0f1b16;
+  --le-text-muted: #5b6b62;
+  --le-text-subtle: #8a9990;
+  --le-text-inverse: #ffffff;
+
+  /* Brand — emerald */
+  --le-primary: #059669;
+  --le-primary-hover: #047857;
+  --le-primary-active: #065f46;
+  --le-primary-soft: #d1fae5;
+  --le-primary-contrast: #ffffff;
+
+  /* Semantic */
+  --le-success: #16a34a;
+  --le-success-soft: #dcfce7;
+  --le-warning: #b45309;
+  --le-warning-soft: #fef3c7;
+  --le-danger: #dc2626;
+  --le-danger-soft: #fee2e2;
+  --le-info: #2563eb;
+  --le-info-soft: #dbeafe;
+
+  /* ===== Spacing scale ===== */
+  --le-space-1: 0.25rem;
+  --le-space-2: 0.5rem;
+  --le-space-3: 0.75rem;
+  --le-space-4: 1rem;
+  --le-space-5: 1.25rem;
+  --le-space-6: 1.5rem;
+  --le-space-7: 2rem;
+  --le-space-8: 2.5rem;
+  --le-space-9: 3rem;
+  --le-space-10: 4rem;
+
+  /* ===== Radius ===== */
+  --le-radius-sm: 0.375rem;
+  --le-radius: 0.5rem;
+  --le-radius-md: 0.75rem;
+  --le-radius-lg: 1rem;
+  --le-radius-pill: 9999px;
+
+  /* ===== Shadow ===== */
+  --le-shadow-sm: 0 1px 2px 0 rgb(15 27 22 / 0.05);
+  --le-shadow: 0 2px 6px -1px rgb(15 27 22 / 0.08), 0 1px 2px -1px rgb(15 27 22 / 0.06);
+  --le-shadow-md: 0 8px 20px -4px rgb(15 27 22 / 0.12), 0 4px 8px -4px rgb(15 27 22 / 0.06);
+  --le-shadow-lg: 0 20px 40px -8px rgb(15 27 22 / 0.18);
+
+  /* ===== Typography ===== */
+  --le-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --le-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --le-fs-xs: 0.75rem;
+  --le-fs-sm: 0.875rem;
+  --le-fs-base: 0.9375rem;
+  --le-fs-md: 1rem;
+  --le-fs-lg: 1.125rem;
+  --le-fs-xl: 1.25rem;
+  --le-fs-2xl: 1.5rem;
+  --le-fs-3xl: 2rem;
+  --le-fs-4xl: 2.5rem;
+  --le-lh-tight: 1.2;
+  --le-lh-snug: 1.35;
+  --le-lh-normal: 1.55;
+  --le-fw-medium: 500;
+  --le-fw-semibold: 600;
+  --le-fw-bold: 700;
+
+  /* ===== Layout ===== */
+  --le-sidebar-w: 16rem;
+  --le-topbar-h: 3.75rem;
+  --le-content-max: 80rem;
+
+  /* ===== Motion ===== */
+  --le-transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --le-transition-slow: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===== z-index ===== */
+  --le-z-drawer: 40;
+  --le-z-modal-backdrop: 50;
+  --le-z-modal: 51;
+  --le-z-toast: 60;
+}
+
+[data-theme='dark'] {
+  --le-bg: #0a1410;
+  --le-surface: #101d17;
+  --le-surface-2: #0c1712;
+  --le-surface-hover: #16241d;
+  --le-border: #1f3329;
+  --le-border-strong: #2c463a;
+
+  --le-text: #e8f1ed;
+  --le-text-muted: #9bb3a8;
+  --le-text-subtle: #6f877d;
+
+  --le-primary: #10b981;
+  --le-primary-hover: #34d399;
+  --le-primary-active: #6ee7b7;
+  --le-primary-soft: #064e3b;
+  --le-primary-contrast: #062019;
+
+  --le-success: #22c55e;
+  --le-success-soft: #052e1a;
+  --le-warning: #f59e0b;
+  --le-warning-soft: #2a1a05;
+  --le-danger: #ef4444;
+  --le-danger-soft: #2a0d0d;
+  --le-info: #3b82f6;
+  --le-info-soft: #0c1d3a;
+
+  --le-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --le-shadow: 0 2px 6px -1px rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --le-shadow-md: 0 8px 20px -4px rgb(0 0 0 / 0.5);
+  --le-shadow-lg: 0 20px 40px -8px rgb(0 0 0 / 0.6);
+}
+
+/* ============================================================
+   Base / Reset
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--le-font-sans);
+  font-size: var(--le-fs-base);
+  line-height: var(--le-lh-normal);
+  color: var(--le-text);
+  background: var(--le-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background var(--le-transition), color var(--le-transition);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--le-fw-semibold);
+  line-height: var(--le-lh-tight);
+  color: var(--le-text);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--le-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--le-primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--le-primary-soft);
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--le-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--le-border-strong);
+  border-radius: var(--le-radius-pill);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
