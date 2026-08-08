@@ -87,7 +87,12 @@ app.Use(async (context, next) =>
 
 app.UseCors("PoliticaCors");
 app.UseExceptionHandler(app => { });
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
