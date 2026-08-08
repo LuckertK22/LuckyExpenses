@@ -29,6 +29,10 @@ nul
 
 ## Project context (local only)
 CONTEXTO.md
+PLAN-FRONTEND.md
+
+## Docker secrets (local only)
+.env
 
 ## Agent tooling (local only)
 .agents/
