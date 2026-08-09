@@ -2,15 +2,7 @@
 
 API de gastos personales construida con **ASP.NET Core**, **Clean Architecture**, **CQRS + MediatR**, **Entity Framework Core** y **PostgreSQL**, con un frontend en **Angular**.
 
-## Enlaces
 
-- Frontend (desplegado): https://luckyexpenses-frontend.onrender.com
-- API backend (desplegada): https://luckyexpenses-backend.onrender.com
-- Documentación de la API (Scalar): https://luckyexpenses-backend.onrender.com/scalar/v1
-- Documentación de la API (Swagger UI): https://luckyexpenses-backend.onrender.com/swagger/index.html
-- Health check: https://luckyexpenses-backend.onrender.com/api/v1/Health/Health
-
-> Este README se enfoca en el backend. El frontend vive en [`frontend/`](frontend/README.md).
 
 ## Stack backend
 
