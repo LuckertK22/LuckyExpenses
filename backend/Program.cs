@@ -64,7 +64,13 @@ if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
     dbContext.Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+var enableDocumentation = app.Configuration.GetValue("Documentation:Enabled", true);
+if (enableDocumentation)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -76,10 +82,6 @@ if (app.Environment.IsDevelopment())
         options.WithTitle("Lucky Expenses API Documentation");
         options.OpenApiRoutePattern = "/swagger/v1/swagger.json";
     });
-}
-else
-{
-    app.UseHsts();
 }
 
 app.Use(async (context, next) =>
